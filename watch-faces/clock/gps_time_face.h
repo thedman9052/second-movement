@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022 Joey Castillo
+ * Copyright (c) 2025 <#author_name#>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,29 @@
 
 #pragma once
 
-#include "clock_face.h"
-#include "beats_face.h"
-#include "world_clock_face.h"
-#include "alarm_face.h"
-#include "advanced_alarm_face.h"
-#include "countdown_face.h"
-#include "stopwatch_face.h"
-#include "fast_stopwatch_face.h"
-#include "sunrise_sunset_face.h"
-#include "moon_phase_face.h"
-#include "days_since_face.h"
-#include "character_set_face.h"
-#include "accelerometer_status_face.h"
-#include "all_segments_face.h"
-#include "temperature_display_face.h"
-#include "temperature_logging_face.h"
-#include "activity_logging_face.h"
-#include "light_meter_face.h"
-#include "voltage_face.h"
-#include "set_time_face.h"
-#include "settings_face.h"
-#include "light_sensor_face.h"
-#include "irda_upload_face.h"
-#include "chirpy_demo_face.h"
-#include "finetune_face.h"
-#include "nanosec_face.h"
-#include "mars_time_face.h"
-#include "peek_memory_face.h"
-#include "gps_time_face.h"
-// New includes go above this line.
-cludes go above this line.
+#include "movement.h"
+
+/*
+ * A DESCRIPTION OF YOUR WATCH FACE
+ *
+ * and a description of how use it
+ *
+ */
+
+typedef struct {
+    // Anything you need to keep track of, put it here!
+    uint8_t unused;
+} gps_time_state_t;
+
+void gps_time_face_setup(uint8_t watch_face_index, void ** context_ptr);
+void gps_time_face_activate(void *context);
+bool gps_time_face_loop(movement_event_t event, void *context);
+void gps_time_face_resign(void *context);
+
+#define gps_time_face ((const watch_face_t){ \
+    gps_time_face_setup, \
+    gps_time_face_activate, \
+    gps_time_face_loop, \
+    gps_time_face_resign, \
+    NULL, \
+})
