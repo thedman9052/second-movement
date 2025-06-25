@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 <#author_name#>
+ * Copyright (c) 2025 Donald Gregorich
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,89 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gps_time_face.h"
+#include "watch_utility.h"
+
+static uint32_t unix_to_gps = 315964800;
+static uint32_t secs_per_week = 60 * 60 * 24 * 7;
+
+void _update_seconds(uint32_t seconds, bool significant) {
+    char buf[6];
+    char submode[2];
+    uint32_t short_secs;
+    
+    watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "GPS", "NT");
+
+    // Show 6 least significant digits
+    if (!significant) {
+        short_secs = seconds % 1000000;
+        sprintf(submode, " L");
+    } else { // most significant digits
+        short_secs = seconds / 1000000;
+        sprintf(submode, " S");
+    }    
+    sprintf(buf, "%6d", short_secs);
+    watch_display_text(WATCH_POSITION_TOP_RIGHT, submode);
+    watch_display_text(WATCH_POSITION_BOTTOM, buf);
+}
+
+void _update_weeknum(uint32_t seconds) {
+    char buf[6];
+
+    uint32_t week = seconds / secs_per_week;
+    sprintf(buf, "%6d", week);
+    watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "WKN", "WN");
+    watch_display_text(WATCH_POSITION_TOP_RIGHT, "  ");
+    watch_display_text(WATCH_POSITION_BOTTOM, buf);
+}
+
+void _update_time_of_week(uint32_t seconds) {
+    char buf[6];
+
+    uint32_t time_of_week = seconds % secs_per_week;
+    sprintf(buf, "%6d", time_of_week);
+    watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TOW", "TO");
+    watch_display_text(WATCH_POSITION_TOP_RIGHT, "  ");
+    watch_display_text(WATCH_POSITION_BOTTOM, buf);
+}
+
+void _update_leap_sec(gps_time_state_t *state) {
+    char buf[6];
+
+    sprintf(buf, "  %2d  ", state->leap_seconds);
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "LPS", "LE");
+    watch_display_text_with_fallback(WATCH_POSITION_TOP_RIGHT, "EC", "  ");
+    watch_display_text(WATCH_POSITION_BOTTOM, buf);
+}
+
+void _change_leap_sec(gps_time_state_t *state) {
+    state->leap_seconds += 1;
+    if (state->leap_seconds > 60) {
+        state->leap_seconds = 0;
+    }
+}
+
+static void _update(gps_time_state_t *state) {
+    watch_date_time_t date_time = movement_get_utc_date_time();
+    uint32_t now = watch_utility_date_time_to_unix_time(date_time, 0);
+    uint32_t seconds = now - unix_to_gps + (uint32_t) state->leap_seconds;
+
+    switch (state->current_mode) {
+        case GPS_TIME_SECONDS:            
+            _update_seconds(seconds, state->significant);
+            break;
+        case GPS_TIME_WEEKNUM:            
+            _update_weeknum(seconds);
+            break;
+        case GPS_TIME_TIMEOFWEEK:
+            _update_time_of_week(seconds);
+            break;
+        case GPS_TIME_LEAPSEC:
+            _update_leap_sec(state);
+            break;
+        default:
+            state->current_mode = GPS_TIME_SECONDS;
+    }
+}
 
 void gps_time_face_setup(uint8_t watch_face_index, void ** context_ptr) {
     (void) watch_face_index;
@@ -32,14 +115,22 @@ void gps_time_face_setup(uint8_t watch_face_index, void ** context_ptr) {
         *context_ptr = malloc(sizeof(gps_time_state_t));
         memset(*context_ptr, 0, sizeof(gps_time_state_t));
         // Do any one-time tasks in here; the inside of this conditional happens only at boot.
+        gps_time_state_t *state = (gps_time_state_t *)*context_ptr;
+        state->leap_seconds = 18;
     }
     // Do any pin or peripheral setup here; this will be called whenever the watch wakes from deep sleep.
 }
 
 void gps_time_face_activate(void *context) {
     gps_time_state_t *state = (gps_time_state_t *)context;
-
     // Handle any tasks related to your watch face coming on screen.
+    state->current_mode = GPS_TIME_SECONDS;
+    state->significant = false;
+
+    if (watch_sleep_animation_is_running()) {
+        watch_stop_sleep_animation();
+        watch_stop_blink();
+    }
 }
 
 bool gps_time_face_loop(movement_event_t event, void *context) {
@@ -47,51 +138,41 @@ bool gps_time_face_loop(movement_event_t event, void *context) {
 
     switch (event.event_type) {
         case EVENT_ACTIVATE:
-            // Show your initial UI here.
-            break;
         case EVENT_TICK:
-            // If needed, update your display here.
-            break;
-        case EVENT_LIGHT_BUTTON_UP:
-            // You can use the Light button for your own purposes. Note that by default, Movement will also
-            // illuminate the LED in response to EVENT_LIGHT_BUTTON_DOWN; to suppress that behavior, add an
-            // empty case for EVENT_LIGHT_BUTTON_DOWN.
+            _update(state);
             break;
         case EVENT_ALARM_BUTTON_UP:
-            // Just in case you have need for another button.
+            state->current_mode += 1;
+            _update(state);
             break;
         case EVENT_TIMEOUT:
-            // Your watch face will receive this event after a period of inactivity. If it makes sense to resign,
-            // you may uncomment this line to move back to the first watch face in the list:
-            // movement_move_to_face(0);
+            movement_move_to_face(0);
             break;
-        case EVENT_LOW_ENERGY_UPDATE:
-            // If you did not resign in EVENT_TIMEOUT, you can use this event to update the display once a minute.
-            // Avoid displaying fast-updating values like seconds, since the display won't update again for 60 seconds.
-            // You should also consider starting the tick animation, to show the wearer that this is sleep mode:
-            // watch_start_sleep_animation(500);
-            break;
+        case EVENT_LIGHT_BUTTON_DOWN:
+            if (state->current_mode == GPS_TIME_LEAPSEC) {
+                _change_leap_sec(state);
+                _update(state);
+                break;
+            } else if (state->current_mode == GPS_TIME_SECONDS) {
+                state->significant = 1;
+                _update(state);
+                break;
+            }
+            return movement_default_loop_handler(event);
+        case EVENT_LIGHT_BUTTON_UP:
+            if (state->current_mode == GPS_TIME_SECONDS) {
+                state->significant = 0;
+                _update(state);
+                break;
+            }
         default:
-            // Movement's default loop handler will step in for any cases you don't handle above:
-            // * EVENT_LIGHT_BUTTON_DOWN lights the LED
-            // * EVENT_MODE_BUTTON_UP moves to the next watch face in the list
-            // * EVENT_MODE_LONG_PRESS returns to the first watch face (or skips to the secondary watch face, if configured)
-            // You can override any of these behaviors by adding a case for these events to this switch statement.
             return movement_default_loop_handler(event);
     }
 
-    // return true if the watch can enter standby mode. Generally speaking, you should always return true.
-    // Exceptions:
-    //  * If you are displaying a color using the low-level watch_set_led_color function, you should return false.
-    //  * If you are sounding the buzzer using the low-level watch_set_buzzer_on function, you should return false.
-    // Note that if you are driving the LED or buzzer using Movement functions like movement_illuminate_led or
-    // movement_play_alarm, you can still return true. This guidance only applies to the low-level watch_ functions.
     return true;
 }
 
 void gps_time_face_resign(void *context) {
     (void) context;
-
-    // handle any cleanup before your watch face goes off-screen.
 }
 

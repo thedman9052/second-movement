@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 <#author_name#>
+ * Copyright (c) 2025 Donald Gregorich
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,36 @@
 #include "movement.h"
 
 /*
- * A DESCRIPTION OF YOUR WATCH FACE
+ * GPS TIME face
  *
- * and a description of how use it
- *
+ * Displays GPS time in several formats.
+ * GPS time is the number of seconds from Jan 6, 1980. It excludes leap seconds,
+ * so as of 2025 GPS is ahead of UTC by 18 seconds. GPS time is also expressed
+ * in whole weeks since the epoch and the time of that week. The week rolls over
+ * on Sunday at 00:00 UTC.
+ * 
+ * Pressing the ALARM button cycles through different GPS time displays:
+ *   GPS - Total GPS seconds
+ *   WKN - GPS week number
+ *   TOW - Time of week
+ *   LPS - Leap seconds
+ * 
+ * Pressing the LIGHT button on the LPS page will allow you to change the number
+ * of leap seconds by pressing the ALARM button, up to 99.
  */
 
+typedef enum {
+    GPS_TIME_SECONDS,
+    GPS_TIME_WEEKNUM,
+    GPS_TIME_TIMEOFWEEK,
+    GPS_TIME_LEAPSEC,
+    GPS_TIME_NUM_MODES,
+} gps_time_mode_t;
+
 typedef struct {
-    // Anything you need to keep track of, put it here!
-    uint8_t unused;
+    gps_time_mode_t current_mode;
+    uint8_t leap_seconds;
+    bool significant;
 } gps_time_state_t;
 
 void gps_time_face_setup(uint8_t watch_face_index, void ** context_ptr);
