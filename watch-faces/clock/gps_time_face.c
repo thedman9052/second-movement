@@ -31,8 +31,8 @@ static uint32_t unix_to_gps = 315964800;
 static uint32_t secs_per_week = 60 * 60 * 24 * 7;
 
 void _update_seconds(uint32_t seconds, bool significant) {
-    char buf[6];
-    char submode[2];
+    char buf[7];
+    char submode[3];
     uint32_t short_secs;
     
     watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "GPS", "NT");
@@ -51,7 +51,7 @@ void _update_seconds(uint32_t seconds, bool significant) {
 }
 
 void _update_weeknum(uint32_t seconds) {
-    char buf[6];
+    char buf[7];
 
     uint32_t week = seconds / secs_per_week;
     sprintf(buf, "%6d", week);
@@ -61,7 +61,7 @@ void _update_weeknum(uint32_t seconds) {
 }
 
 void _update_time_of_week(uint32_t seconds) {
-    char buf[6];
+    char buf[7];
 
     uint32_t time_of_week = seconds % secs_per_week;
     sprintf(buf, "%6d", time_of_week);
@@ -71,7 +71,7 @@ void _update_time_of_week(uint32_t seconds) {
 }
 
 void _update_leap_sec(gps_time_state_t *state) {
-    char buf[6];
+    char buf[7];
 
     sprintf(buf, "  %2d  ", state->leap_seconds);
     watch_display_text_with_fallback(WATCH_POSITION_TOP, "LPS", "LE");

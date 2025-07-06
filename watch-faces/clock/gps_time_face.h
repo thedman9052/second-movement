@@ -41,6 +41,11 @@
  *   TOW - Time of week
  *   LPS - Leap seconds
  * 
+ * The GPS page displays the six least significant digits of the GPS seconds,
+ * indicated by the letter L in the upper right.
+ * Holding the LIGHT button on this plage will temporarly show the remaining
+ * most significant digits, indicated by S.
+ * 
  * Pressing the LIGHT button on the LPS page will allow you to change the number
  * of leap seconds by pressing the ALARM button, up to 99.
  */

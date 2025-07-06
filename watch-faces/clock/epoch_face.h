@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022 Joey Castillo
+ * Copyright (c) 2025 Donald Gregorich
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,35 +24,42 @@
 
 #pragma once
 
-#include "clock_face.h"
-#include "beats_face.h"
-#include "world_clock_face.h"
-#include "alarm_face.h"
-#include "advanced_alarm_face.h"
-#include "countdown_face.h"
-#include "stopwatch_face.h"
-#include "fast_stopwatch_face.h"
-#include "sunrise_sunset_face.h"
-#include "moon_phase_face.h"
-#include "days_since_face.h"
-#include "character_set_face.h"
-#include "accelerometer_status_face.h"
-#include "all_segments_face.h"
-#include "temperature_display_face.h"
-#include "temperature_logging_face.h"
-#include "activity_logging_face.h"
-#include "light_meter_face.h"
-#include "voltage_face.h"
-#include "set_time_face.h"
-#include "settings_face.h"
-#include "light_sensor_face.h"
-#include "irda_upload_face.h"
-#include "chirpy_demo_face.h"
-#include "finetune_face.h"
-#include "nanosec_face.h"
-#include "mars_time_face.h"
-#include "peek_memory_face.h"
-#include "gps_time_face.h"
-#include "epoch_face.h"
-#include "datenum_face.h"
-// New includes go above this line.
+#include "movement.h"
+
+/*
+ * EPOCH face
+ * 
+ * A collection of faces which display the time from alternate epochs.
+ * 
+ * Pressing the ALARM button cycles through the epochs:
+ *    UNX: Unix seconds from midnight Jan 1, 1970
+ *    J2K: J2000 seconds from 12 noon Jan 1, 2000
+ * 
+ * The pages show the six least significant digits of the seconds, indicated
+ * by the letter L in the upper right.
+ * Holding the LIGHT button will temporarily show the remaining most significant
+ * digits, indicated by S. 
+ */
+
+typedef enum {
+    EPOCH_UNIX,
+    EPOCH_J2000,
+} epoch_mode_t;
+
+typedef struct {
+    epoch_mode_t current_mode;
+    bool significant;
+} epoch_state_t;
+
+void epoch_face_setup(uint8_t watch_face_index, void ** context_ptr);
+void epoch_face_activate(void *context);
+bool epoch_face_loop(movement_event_t event, void *context);
+void epoch_face_resign(void *context);
+
+#define epoch_face ((const watch_face_t){ \
+    epoch_face_setup, \
+    epoch_face_activate, \
+    epoch_face_loop, \
+    epoch_face_resign, \
+    NULL, \
+})

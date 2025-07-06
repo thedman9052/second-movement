@@ -28,4 +28,6 @@ SRCS += \
   ./watch-faces/io/chirpy_demo_face.c \
   ./watch-faces/io/irda_upload_face.c \
   ./watch-faces/clock/gps_time_face.c \
+  ./watch-faces/clock/epoch_face.c \
+  ./watch-faces/clock/datenum_face.c \
 # New watch faces go above this line.
